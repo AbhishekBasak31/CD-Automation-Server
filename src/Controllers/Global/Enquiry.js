@@ -1,47 +1,48 @@
-import mongoose from "mongoose";
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { Enquiry } from "../../Models/Global/Enquiry.js";
 dotenv.config();
 // ============================
 // Create new enquiry
 // ============================
-export const createEnquiry = async (req, res)=>{
+import { Resend } from "resend";
+import Enquiry from "../Models/Enquiry.js";
 
-    try{
-        const {name,email,phone, enquirie} = req.body;
-        if(!name||name.trim() === "" 
-        || !phone||phone.trim()===""
-        || !email||email.trim()===""
-        ||!enquirie || enquirie.trim()===""){
-             return res.status(400).json({ error: "Please fill all fields" });
-        }
-    let enquiry = new Enquiry({
-       name,email,phone, enquirie
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export const createEnquiry = async (req, res) => {
+  try {
+    const { name, email, phone, enquirie } = req.body;
+
+    // ---------------- Validation ----------------
+    if (
+      !name?.trim() ||
+      !email?.trim() ||
+      !phone?.trim() ||
+      !enquirie?.trim()
+    ) {
+      return res.status(400).json({ error: "Please fill all fields" });
+    }
+
+    // ---------------- Save enquiry ----------------
+    const enquiry = await Enquiry.create({
+      name,
+      email,
+      phone,
+      enquirie,
     });
 
-    await enquiry.save();
-
-    if(!enquiry){
-        return res.status(500).json({
+    if (!enquiry) {
+      return res.status(500).json({
         error: "Enquiry creation failed",
       });
     }
-            // Email configuration
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
 
-    const mailOptions = {
-      from: `${email}`,
-      to: "jais47768@gmail.com",
-      subject: `New  Enquiry Received from ${name}`,
+    // ---------------- Send email (NO SMTP) ----------------
+    await resend.emails.send({
+     from: "CD Automation <onboarding@resend.dev>",// must be verified in Resend
+      to: ["decorafurnish@gmail.com"],
+      reply_to: email, // customer email
+      subject: `New Enquiry Received from ${name}`,
       html: `
         <h3>Customer Enquiry</h3>
         <p><strong>Name:</strong> ${name}</p>
@@ -49,19 +50,20 @@ export const createEnquiry = async (req, res)=>{
         <p><strong>Phone:</strong> ${phone}</p>
         <p><strong>Enquiry:</strong> ${enquirie}</p>
       `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     return res.status(201).json({
-      message: "Query created and email sent successfully",
-      enquirie,
+      message: "Enquiry created and email sent successfully",
+      data: enquiry,
     });
-    }
-    catch(err){
-        res.status(500).json({ error: err.message });
-    }
-}
+  } catch (err) {
+    console.error("Enquiry Error:", err);
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+};
+
 
 export const getAllEnquiries = async (req, res) => {
   try {

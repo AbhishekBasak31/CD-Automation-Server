@@ -1,68 +1,70 @@
-import mongoose from "mongoose";
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-import { Contact } from "../../Models/Global/Contact.js";
+import { Resend } from "resend";
+import Contact from "../Models/Contact.js";
 
-dotenv.config();
-// ============================
-// Create new enquiry
-// ============================
-export const createContact = async (req, res)=>{
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-    try{
-        const {name,email,phone,message} = req.body;
-        if(!name||name.trim() === "" 
-        || !phone||phone.trim()===""
-        || !email||email.trim()===""
-        ||!message|| message.trim()===""){
-             return res.status(400).json({ error: "Please fill all fields" });
-        }
-    let contact = new Contact({
-       name,email,phone, message
-    });
+export const createContact = async (req, res) => {
+  try {
+    const { name, email, phone, message } = req.body;
 
-    await contact.save();
-
-    if(!contact){
-        return res.status(500).json({
-        error: "Enquiry creation failed",
+    // ---------------- Validation ----------------
+    if (
+      !name?.trim() ||
+      !email?.trim() ||
+      !phone?.trim() ||
+      !message?.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please fill all fields",
       });
     }
-            // Email configuration
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+
+    // ---------------- Save contact ----------------
+    const contact = await Contact.create({
+      name,
+      email,
+      phone,
+      message,
     });
 
-    const mailOptions = {
-      from: `${email}`,
-      to: "jais47768@gmail.com",
-      subject: `New  Contact Received from ${name}`,
+    if (!contact) {
+      return res.status(500).json({
+        success: false,
+        message: "Contact creation failed",
+      });
+    }
+
+    // ---------------- Send email via Resend ----------------
+    await resend.emails.send({
+      from: "CD Automation <onboarding@resend.dev>", // or verified domain
+      to: ["decorafurnish@gmail.com"],
+      reply_to: email,
+      subject: `New Contact Received from ${name}`,
       html: `
         <h3>Contact Details</h3>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Enquiry:</strong> ${message}</p>
+        <p><strong>Message:</strong> ${message}</p>
       `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     return res.status(201).json({
+      success: true,
       message: "Contact created and email sent successfully",
-      contact,
+      data: contact,
     });
-    }
-    catch(err){
-        res.status(500).json({ error: err.message });
-    }
-}
+  } catch (error) {
+    console.error("Create Contact Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 
 // Get all contact submissions
 export const getContact = async (req, res) => {
