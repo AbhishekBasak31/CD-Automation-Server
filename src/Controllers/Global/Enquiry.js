@@ -1,12 +1,10 @@
 import dotenv from "dotenv";
+import { Resend } from "resend";
 import { Enquiry } from "../../Models/Global/Enquiry.js";
 dotenv.config();
 // ============================
 // Create new enquiry
 // ============================
-import { Resend } from "resend";
-import Enquiry from "../Models/Enquiry.js";
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const createEnquiry = async (req, res) => {
@@ -37,20 +35,6 @@ export const createEnquiry = async (req, res) => {
       });
     }
 
-    // ---------------- Send email (NO SMTP) ----------------
-    await resend.emails.send({
-     from: "CD Automation <onboarding@resend.dev>",// must be verified in Resend
-      to: ["decorafurnish@gmail.com"],
-      reply_to: email, // customer email
-      subject: `New Enquiry Received from ${name}`,
-      html: `
-        <h3>Customer Enquiry</h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Enquiry:</strong> ${enquirie}</p>
-      `,
-    });
 
     return res.status(201).json({
       message: "Enquiry created and email sent successfully",
@@ -90,3 +74,18 @@ export const getAllEnquiries = async (req, res) => {
     });
   }
 };
+
+    // // ---------------- Send email (NO SMTP) ----------------
+    // await resend.emails.send({
+    //  from: "CD Automation <onboarding@resend.dev>",// must be verified in Resend
+    //   to: ["decorafurnish@gmail.com"],
+    //   reply_to: email, // customer email
+    //   subject: `New Enquiry Received from ${name}`,
+    //   html: `
+    //     <h3>Customer Enquiry</h3>
+    //     <p><strong>Name:</strong> ${name}</p>
+    //     <p><strong>Email:</strong> ${email}</p>
+    //     <p><strong>Phone:</strong> ${phone}</p>
+    //     <p><strong>Enquiry:</strong> ${enquirie}</p>
+    //   `,
+    // });

@@ -1,6 +1,7 @@
+import dotenv from "dotenv";
 import { Resend } from "resend";
-import Contact from "../Models/Contact.js";
-
+import {Contact} from "../../Models/Global/Contact.js";
+dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const createContact = async (req, res) => {
@@ -35,20 +36,7 @@ export const createContact = async (req, res) => {
       });
     }
 
-    // ---------------- Send email via Resend ----------------
-    await resend.emails.send({
-      from: "CD Automation <onboarding@resend.dev>", // or verified domain
-      to: ["decorafurnish@gmail.com"],
-      reply_to: email,
-      subject: `New Contact Received from ${name}`,
-      html: `
-        <h3>Contact Details</h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Message:</strong> ${message}</p>
-      `,
-    });
+
 
     return res.status(201).json({
       success: true,
@@ -85,3 +73,19 @@ export const getContact = async (req, res) => {
     });
   }
 };
+
+
+    // // ---------------- Send email via Resend ----------------
+    // await resend.emails.send({
+    //   from: "CD Automation <onboarding@resend.dev>", // or verified domain
+    //   to: ["decorafurnish@gmail.com"],
+    //   reply_to: email,
+    //   subject: `New Contact Received from ${name}`,
+    //   html: `
+    //     <h3>Contact Details</h3>
+    //     <p><strong>Name:</strong> ${name}</p>
+    //     <p><strong>Email:</strong> ${email}</p>
+    //     <p><strong>Phone:</strong> ${phone}</p>
+    //     <p><strong>Message:</strong> ${message}</p>
+    //   `,
+    // });

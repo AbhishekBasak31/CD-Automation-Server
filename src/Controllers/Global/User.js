@@ -102,14 +102,22 @@ const isProd = process.env.NODE_ENV === "production";
 // ============================
 export const logoutUser = (req, res) => {
   try {
+    const isProd = process.env.NODE_ENV === "production";
+    
     res.clearCookie("AccessToken", {
       httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      path: "/", // ✅ FIXED: Must match the path used in loginUser
     });
-    res.json({ message: "User logged out successfully" });
+
+    res.status(200).json({ 
+        success: true, 
+        message: "User logged out successfully" 
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Logout Error:", err);
+    res.status(500).json({ error: "Logout failed" });
   }
 };
 
