@@ -33,7 +33,11 @@ import ProductRouter from "./src/Routers/Global/Product.js";
 import TechSpecRouter from "./src/Routers/Global/Techspec.js";
 import ApplicationRouter from "./src/Routers/Global/Application.js";
 import HomeWhychooseUsRouter from "./src/Routers/Homepage/WhyChooseUs.js";
-import AboutBannerRouter from "./src/Routers/AboutPage/Banner.js";
+import AboutPageRouter from "./src/Routers/AboutPage/AboutPage.js";
+import DirectorRouter from "./src/Routers/Global/Director.js";
+import CareerPageRouter from "./src/Routers/CareerPage/Careerpage.js";
+import JobRouter from "./src/Routers/Global/Job.js";
+import jobapplicationrouter from "./src/Routers/Global/Jobapplicationform.js";
 
 const app = express();
 const PORT = process.env.PORT || 7000;
@@ -156,6 +160,9 @@ app.use("/api/v1/pbrand", ProductBrandRouter);
 app.use("/api/v1/product", ProductRouter);
 app.use("/api/v1/product/techspec", TechSpecRouter);
 app.use("/api/v1/product/application", ApplicationRouter);
+app.use("/api/v1/director", DirectorRouter);
+app.use("/api/v1/job", JobRouter);
+
 
 // Home page
 app.use("/api/v1/home/banner", HomeBannerRouter);
@@ -167,7 +174,13 @@ app.use("/api/v1/home/ourteam", HomeOurTeamRouter);
 app.use("/api/v1/home/wcu", HomeWhychooseUsRouter);
 
 // About page
-app.use("/api/v1/about/banner", AboutBannerRouter);
+app.use("/api/v1/aboutpage", AboutPageRouter);
+
+// Career page
+app.use("/api/v1/careerpage", CareerPageRouter);
+
+
+app.use("/api/v1/jobapplication", jobapplicationrouter);
 
 /* -------------------------------------------------------
    DATABASE & SERVER START

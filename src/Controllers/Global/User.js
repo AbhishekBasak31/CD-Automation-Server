@@ -16,7 +16,7 @@ import { Service } from "../../Models/Global/Service.js";
 import Product from "../../Models/Global/Product.js";
 import { Client } from "../../Models/Global/Client.js";
 import { ProductBrand } from "../../Models/Global/Brand.js";
-import { AboutBanner } from "../../Models/AboutPage/Banner.js";
+import { AboutPage } from "../../Models/AboutPage/AboutPage.js";
 
 
 
@@ -232,7 +232,7 @@ export const dashboardData = async (req, res) => {
       HomeAbout:fetchDocs(HomeAbout),
       HomeProjectSec:fetchDocs(HomeProjectSec,{populate:["Projects"]}),
       HomeReviewSec:fetchDocs(HomeReviewSec,{populate:["Reviews"]}),
-      AboutBanner:fetchDocs(AboutBanner)
+      Aboutpage:fetchDocs(AboutPage,{populate:["Directors"]})
 
 
       
