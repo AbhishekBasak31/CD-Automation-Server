@@ -1,11 +1,13 @@
 import { jobapplication } from "../../Models/Global/Jobapplicationform.js";
-import uploadOnCloudinary from "../../Utils/Clodinary.js"; // Adjust path to your Cloudinary utility
+import uploadOnSupabase, { deleteFromSupabase } from "../../Utils/Superbase.js"; // Import new utility
+
+
 
 export const applyForJob = async (req, res) => {
   try {
-    // 1. Check if the resume file exists in the request
-    // Multer attaches the file to req.file
     const resumeLocalPath = req.file?.path;
+    const originalName = req.file?.originalname;
+    const mimeType = req.file?.mimetype;
 
     if (!resumeLocalPath) {
       return res.status(400).json({ 
@@ -14,33 +16,25 @@ export const applyForJob = async (req, res) => {
       });
     }
 
-    // 2. Upload the file to Cloudinary
-    // Your utility handles the upload and deletes the local file automatically
-    const resumeUploadResponse = await uploadOnCloudinary(resumeLocalPath);
+    // --- UPLOAD TO SUPABASE ---
+    // Pass local path, mime type (application/pdf), and original name
+    const resumeUrl = await uploadOnSupabase(resumeLocalPath, mimeType, originalName);
 
-    if (!resumeUploadResponse) {
+    if (!resumeUrl) {
       return res.status(500).json({ 
         success: false, 
         message: "Failed to upload resume to cloud storage" 
       });
     }
+    // --------------------------
 
-    // 3. Extract text fields from req.body
     const { 
-      jobId, 
-      fullName, 
-      email, 
-      phone, 
-      linkedinUrl, 
-      portfolioUrl, 
-      coverLetter,
-      experienceYears,
-      currentCtc,
-      expectedCtc,
-      noticePeriod
+      jobId, fullName, email, phone, linkedinUrl, 
+      portfolioUrl, coverLetter, experienceYears,
+      currentCtc, expectedCtc, noticePeriod
     } = req.body;
 
-    // 4. Check for duplicate application (Optional logic)
+    // Check for duplicates
     const existingApplication = await jobapplication.findOne({ jobId, email });
     if (existingApplication) {
       return res.status(409).json({
@@ -49,24 +43,14 @@ export const applyForJob = async (req, res) => {
       });
     }
 
-    // 5. Create the Database Entry
+    // Create Database Entry
     const application = await jobapplication.create({
-      jobId,
-      fullName,
-      email,
-      phone,
-      linkedinUrl,
-      portfolioUrl,
-      coverLetter,
-      experienceYears,
-      currentCtc,
-      expectedCtc,
-      noticePeriod,
-      // Store the Cloudinary URL in the database
-      resumeUrl: resumeUploadResponse.secure_url 
+      jobId, fullName, email, phone, linkedinUrl, 
+      portfolioUrl, coverLetter, experienceYears,
+      currentCtc, expectedCtc, noticePeriod,
+      resumeUrl: resumeUrl // This is now a direct link (e.g., supabase.co/.../mycv.pdf)
     });
 
-    // 6. Send Success Response
     return res.status(201).json({
       success: true,
       message: "Application submitted successfully",
@@ -75,11 +59,6 @@ export const applyForJob = async (req, res) => {
 
   } catch (error) {
     console.error("Error submitting application:", error);
-    
-    // Note: If an error occurs here (e.g. MongoDB validation error), 
-    // your uploadOnCloudinary utility has already deleted the local file, 
-    // so we don't need to clean it up again here.
-    
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -87,7 +66,6 @@ export const applyForJob = async (req, res) => {
     });
   }
 };
-
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -134,10 +112,12 @@ export const updateApplicationStatus = async (req, res) => {
 
 // --- 4. ADMIN: DELETE APPLICATION ---
 // Usage: DELETE /api/v1/application/:id
+// --- 4. ADMIN: DELETE APPLICATION ---
 export const deleteApplication = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 1. Find the application first
     const application = await jobapplication.findById(id);
 
     if (!application) {
@@ -147,14 +127,17 @@ export const deleteApplication = async (req, res) => {
       });
     }
 
-    // Optional: Add logic here to delete the resume from Cloudinary using application.resumeUrl
-    // if you want to save cloud storage space.
+    // 2. Delete the Resume from Supabase Storage
+    if (application.resumeUrl) {
+        await deleteFromSupabase(application.resumeUrl);
+    }
 
-    await Application.findByIdAndDelete(id);
+    // 3. Delete from MongoDB
+    await jobapplication.findByIdAndDelete(id);
 
     return res.status(200).json({
       success: true,
-      message: "Application deleted successfully"
+      message: "Application and Resume deleted successfully"
     });
 
   } catch (error) {
@@ -216,3 +199,92 @@ export const getApplicationbyID = async (req, res) => {
     });
   }
 };
+
+
+
+// export const applyForJob = async (req, res) => {
+//   try {
+//     // 1. Check if the resume file exists in the request
+//     // Multer attaches the file to req.file
+//     const resumeLocalPath = req.file?.path;
+
+//     if (!resumeLocalPath) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: "Resume file is required" 
+//       });
+//     }
+
+//     // 2. Upload the file to Cloudinary
+//     // Your utility handles the upload and deletes the local file automatically
+//     const resumeUploadResponse = await uploadOnCloudinary(resumeLocalPath);
+
+//     if (!resumeUploadResponse) {
+//       return res.status(500).json({ 
+//         success: false, 
+//         message: "Failed to upload resume to cloud storage" 
+//       });
+//     }
+
+//     // 3. Extract text fields from req.body
+//     const { 
+//       jobId, 
+//       fullName, 
+//       email, 
+//       phone, 
+//       linkedinUrl, 
+//       portfolioUrl, 
+//       coverLetter,
+//       experienceYears,
+//       currentCtc,
+//       expectedCtc,
+//       noticePeriod
+//     } = req.body;
+
+//     // 4. Check for duplicate application (Optional logic)
+//     const existingApplication = await jobapplication.findOne({ jobId, email });
+//     if (existingApplication) {
+//       return res.status(409).json({
+//         success: false,
+//         message: "You have already applied for this position with this email."
+//       });
+//     }
+
+//     // 5. Create the Database Entry
+//     const application = await jobapplication.create({
+//       jobId,
+//       fullName,
+//       email,
+//       phone,
+//       linkedinUrl,
+//       portfolioUrl,
+//       coverLetter,
+//       experienceYears,
+//       currentCtc,
+//       expectedCtc,
+//       noticePeriod,
+//       // Store the Cloudinary URL in the database
+//       resumeUrl: resumeUploadResponse.secure_url 
+//     });
+
+//     // 6. Send Success Response
+//     return res.status(201).json({
+//       success: true,
+//       message: "Application submitted successfully",
+//       data: application
+//     });
+
+//   } catch (error) {
+//     console.error("Error submitting application:", error);
+    
+//     // Note: If an error occurs here (e.g. MongoDB validation error), 
+//     // your uploadOnCloudinary utility has already deleted the local file, 
+//     // so we don't need to clean it up again here.
+    
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal Server Error",
+//       error: error.message
+//     });
+//   }
+// };

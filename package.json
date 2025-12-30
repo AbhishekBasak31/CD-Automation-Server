@@ -11,6 +11,7 @@
     "dev": "nodemon Server.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "cloudinary": "^2.8.0",
